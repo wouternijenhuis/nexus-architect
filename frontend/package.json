@@ -15,7 +15,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "@azure/openai": "^1.0.0-beta.11",
-    "fast-xml-parser": "^4.3.4",
+    "fast-xml-parser": "^5.3.4",
     "socket.io-client": "^4.7.4",
     "zustand": "^4.5.0",
     "react-router-dom": "^6.22.0",
