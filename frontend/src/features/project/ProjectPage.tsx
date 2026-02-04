@@ -7,7 +7,7 @@ import { generateXSDString } from '../../lib/xsd-utils'
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
-  const { projects, createSchema, deleteSchema, setCurrentProject } = useStore()
+  const { projects, createSchema, deleteSchema } = useStore()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newSchemaName, setNewSchemaName] = useState('')
 

@@ -116,7 +116,8 @@ function buildSimpleType(simpleType: XSDSimpleType): any {
   if (simpleType.restrictions && simpleType.restrictions.length > 0) {
     simpleType.restrictions.forEach((restriction) => {
       const key = `xs:${restriction.type}`
-      if (!xsdSimpleType['xs:restriction'][key]) {
+      // Initialize as array if it doesn't exist
+      if (!Array.isArray(xsdSimpleType['xs:restriction'][key])) {
         xsdSimpleType['xs:restriction'][key] = []
       }
       xsdSimpleType['xs:restriction'][key].push({
@@ -134,14 +135,14 @@ function buildSimpleType(simpleType: XSDSimpleType): any {
   return xsdSimpleType
 }
 
-export function validateXMLAgainstXSD(xml: string, xsd: string): ValidationResult {
+export function validateXMLWellFormedness(xml: string, xsd: string): ValidationResult {
   try {
     // Basic XML parsing validation
     parser.parse(xml)
     parser.parse(xsd)
 
-    // For comprehensive validation, we'd need a full XSD validator
-    // This is a simplified version that checks basic XML well-formedness
+    // Note: This only checks well-formedness, not schema compliance
+    // For comprehensive XSD validation, use a dedicated XSD validation library
     return {
       valid: true,
       errors: [],
@@ -158,6 +159,9 @@ export function validateXMLAgainstXSD(xml: string, xsd: string): ValidationResul
   }
 }
 
+// Alias for backward compatibility
+export const validateXMLAgainstXSD = validateXMLWellFormedness
+
 export function parseXSD(xsdString: string): Partial<XSDSchema> {
   try {
     const parsed = parser.parse(xsdString)
@@ -167,7 +171,8 @@ export function parseXSD(xsdString: string): Partial<XSDSchema> {
       throw new Error('Invalid XSD: No schema root element found')
     }
 
-    // Extract basic schema information
+    // TODO: Implement full XSD parsing to extract elements, complex types, simple types, and imports
+    // This is currently a placeholder that only extracts the targetNamespace
     const result: Partial<XSDSchema> = {
       targetNamespace: schema['@_targetNamespace'],
       elements: [],

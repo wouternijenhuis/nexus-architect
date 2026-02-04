@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2024-02-04
+
+### Security - CRITICAL FIX
+
+- **MOVED Azure OpenAI API calls to backend**: API keys are now securely stored on the server
+  - Removed `@azure/openai` from frontend dependencies
+  - Added `@azure/openai` and `fast-xml-parser` to backend dependencies
+  - Created backend AI service (`backend/src/services/ai-service.ts`)
+  - Added `/api/generate-xml` endpoint for secure AI generation
+  - Updated frontend to call backend API instead of Azure directly
+  - Updated documentation to reflect secure configuration
+
+### Fixed
+
+- **Memory leak in backend**: Empty schema rooms are now removed from Map to prevent accumulation
+- **WebSocket URL**: Now uses `VITE_API_URL` environment variable instead of hardcoded localhost
+- **WebSocket event handlers**: Properly cleaned up on disconnect to prevent accumulation
+- **XSD validation function**: Renamed `validateXMLAgainstXSD` to `validateXMLWellFormedness` for accuracy (kept alias for compatibility)
+- **Array initialization**: Fixed potential issue in `buildSimpleType` function with restriction arrays
+- **URL revocation timing**: Added delay before revoking blob URLs to ensure downloads complete
+- **Alert usage**: Replaced `alert()` with proper error message display in UI
+- **Playwright config**: Fixed webServer path using `cwd` option for more robust configuration
+- **Date serialization**: Added comment about Date objects being serialized to strings in localStorage
+
+### Changed
+
+- Frontend environment variables: Removed all Azure OpenAI configuration (now backend-only)
+- Backend environment variables: Added Azure OpenAI configuration section
+- AI generation now proxied through backend for security
+
+### Removed
+
+- Unused imports and variables:
+  - `Save`, `FileCode` from SchemaEditor.tsx
+  - `setCurrentProject` from ProjectPage.tsx
+  - `SharedArray` from load-test.js
+  - `enableColors` variable from load-test.js
+- `initializeAzureAI()` call from App.tsx (moved to backend)
+- Frontend dependency on `@azure/openai`
+
+### Documentation
+
+- Updated AI generation guide to show backend-only configuration
+- Updated README with secure AI setup instructions
+- Added security notes about API key management
+- Clarified that XSD parsing is a placeholder (TODO: implement full parsing)
+
 ## [1.1.0] - 2024-02-04
 
 ### Updated

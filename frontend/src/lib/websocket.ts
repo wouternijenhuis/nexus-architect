@@ -3,9 +3,11 @@ import { XSDSchema } from '../types/xsd'
 
 let socket: Socket | null = null
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
 export function connectWebSocket() {
   if (!socket) {
-    socket = io('http://localhost:3001', {
+    socket = io(API_URL, {
       transports: ['websocket'],
     })
 
@@ -32,6 +34,8 @@ export function connectWebSocket() {
 
 export function disconnectWebSocket() {
   if (socket) {
+    // Remove all event listeners to prevent accumulation
+    socket.removeAllListeners()
     socket.disconnect()
     socket = null
   }

@@ -1,78 +1,49 @@
-import { OpenAIClient, AzureKeyCredential } from '@azure/openai'
 import { AIGenerationRequest, AIGenerationResult, XSDSchema } from '../types/xsd'
 import { generateXSDString } from './xsd-utils'
 
-// These would typically come from environment variables
-const endpoint = import.meta.env.VITE_AZURE_OPENAI_ENDPOINT || ''
-const apiKey = import.meta.env.VITE_AZURE_OPENAI_API_KEY || ''
-const deploymentName = import.meta.env.VITE_AZURE_OPENAI_DEPLOYMENT || 'gpt-4'
-
-let client: OpenAIClient | null = null
-
-export function initializeAzureAI() {
-  if (endpoint && apiKey) {
-    client = new OpenAIClient(endpoint, new AzureKeyCredential(apiKey))
-  }
-}
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 export async function generateXMLSample(
   schema: XSDSchema,
   request: AIGenerationRequest
 ): Promise<AIGenerationResult> {
-  if (!client) {
-    return {
-      xml: '',
-      success: false,
-      error: 'Azure OpenAI client not initialized. Please configure your API credentials.',
-    }
-  }
-
   try {
     const xsdString = generateXSDString(schema)
     
-    const messages = [
-      {
-        role: 'system' as const,
-        content: 'You are an XML expert. Generate valid XML samples based on XSD schemas and user context.',
+    const response = await fetch(`${API_URL}/api/generate-xml`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      {
-        role: 'user' as const,
-        content: `Given this XSD schema:\n\n${xsdString}\n\nAnd this context: ${request.context}\n\nGenerate a valid XML sample that conforms to the schema. Only output the XML, no explanations.`,
-      },
-    ]
-
-    const result = await client.getChatCompletions(
-      deploymentName,
-      messages,
-      {
+      body: JSON.stringify({
+        xsdString,
+        context: request.context,
         temperature: request.temperature || 0.7,
-        maxTokens: 2000,
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      return {
+        xml: '',
+        success: false,
+        error: error.error || 'Failed to generate XML sample',
       }
-    )
-
-    const xmlContent = result.choices[0]?.message?.content?.trim() || ''
-
-    // Clean up markdown code blocks if present
-    let cleanedXML = xmlContent
-    if (cleanedXML.startsWith('```xml')) {
-      cleanedXML = cleanedXML.replace(/```xml\n?/g, '').replace(/```\n?$/g, '')
-    } else if (cleanedXML.startsWith('```')) {
-      cleanedXML = cleanedXML.replace(/```\n?/g, '').replace(/```\n?$/g, '')
     }
 
-    return {
-      xml: cleanedXML,
-      success: true,
-    }
+    const result = await response.json()
+    return result
   } catch (error: any) {
     return {
       xml: '',
       success: false,
-      error: error.message || 'Failed to generate XML sample',
+      error: error.message || 'Failed to connect to server',
     }
   }
 }
 
 export function isAzureAIConfigured(): boolean {
-  return !!(endpoint && apiKey)
+  // This would need to be checked via an API call to the backend
+  // For now, we assume it's configured if the backend is running
+  return true
 }

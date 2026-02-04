@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { connectWebSocket, disconnectWebSocket } from './lib/websocket'
-import { initializeAzureAI } from './lib/azure-ai'
 import HomePage from './features/home/HomePage'
 import ProjectPage from './features/project/ProjectPage'
 import SchemaEditor from './features/schema/SchemaEditor'
@@ -9,9 +8,6 @@ import Header from './components/Header'
 
 function App() {
   useEffect(() => {
-    // Initialize Azure AI client
-    initializeAzureAI()
-
     // Connect WebSocket
     connectWebSocket()
 

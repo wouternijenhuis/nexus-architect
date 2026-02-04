@@ -3,9 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   Plus,
-  Save,
   Download,
-  FileCode,
   Sparkles,
   CheckCircle,
   XCircle,
@@ -101,8 +99,11 @@ export default function SchemaEditor() {
     a.href = url
     a.download = `${schema.name}.xsd`
     a.click()
-    URL.revokeObjectURL(url)
+    // Delay revocation to ensure download completes
+    setTimeout(() => URL.revokeObjectURL(url), 100)
   }
+
+  const [errorMessage, setErrorMessage] = useState('')
 
   const handleValidateXML = () => {
     const result = validateXMLAgainstXSD(xmlInput, xsdPreview)
@@ -110,11 +111,7 @@ export default function SchemaEditor() {
   }
 
   const handleGenerateAI = async () => {
-    if (!isAzureAIConfigured()) {
-      alert('Azure AI is not configured. Please set up your API credentials.')
-      return
-    }
-
+    setErrorMessage('')
     setAiLoading(true)
     const result = await generateXMLSample(schema, {
       context: aiContext,
@@ -125,7 +122,7 @@ export default function SchemaEditor() {
     if (result.success) {
       setAiResult(result.xml)
     } else {
-      alert(result.error || 'Failed to generate XML')
+      setErrorMessage(result.error || 'Failed to generate XML')
     }
   }
 
@@ -297,26 +294,29 @@ export default function SchemaEditor() {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   XSD Preview
                 </h3>
-                {isAzureAIConfigured() && (
-                  <div className="flex space-x-4">
-                    <input
-                      type="text"
-                      value={aiContext}
-                      onChange={(e) => setAiContext(e.target.value)}
-                      placeholder="Describe the data context..."
-                      className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                    <button
-                      onClick={handleGenerateAI}
-                      disabled={aiLoading}
-                      className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                    >
-                      <Sparkles className="w-5 h-5" />
-                      <span>{aiLoading ? 'Generating...' : 'Generate Sample'}</span>
-                    </button>
-                  </div>
-                )}
+                <div className="flex space-x-4">
+                  <input
+                    type="text"
+                    value={aiContext}
+                    onChange={(e) => setAiContext(e.target.value)}
+                    placeholder="Describe the data context..."
+                    className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                  <button
+                    onClick={handleGenerateAI}
+                    disabled={aiLoading}
+                    className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    <span>{aiLoading ? 'Generating...' : 'Generate Sample'}</span>
+                  </button>
+                </div>
               </div>
+              {errorMessage && (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-red-800 dark:text-red-200 text-sm">{errorMessage}</p>
+                </div>
+              )}
               <pre className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg overflow-x-auto text-sm">
                 <code className="text-gray-900 dark:text-gray-100">{xsdPreview}</code>
               </pre>

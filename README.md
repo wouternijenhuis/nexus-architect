@@ -108,11 +108,14 @@ Visit http://localhost:8000 to view the documentation.
 
 ### Generating XML with AI
 
-1. Configure Azure OpenAI credentials in `frontend/.env`
-2. Open a schema editor
-3. Go to "XSD Preview" tab
-4. Enter context description
-5. Click "Generate Sample"
+1. Configure Azure OpenAI credentials in `backend/.env` (server-side only, never in frontend)
+2. Restart the backend server
+3. Open a schema editor
+4. Go to "XSD Preview" tab
+5. Enter context description
+6. Click "Generate Sample"
+
+**Security**: API keys are kept secure on the backend server and never exposed to the browser.
 
 ### Validating XML
 

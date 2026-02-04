@@ -27,23 +27,30 @@ To use AI generation, you need:
 3. Copy the endpoint URL and API key
 4. Note your deployment name
 
-### Step 2: Configure Environment Variables
+### Step 2: Configure Backend Environment Variables
 
-Create or edit `frontend/.env`:
+**IMPORTANT**: API keys must be kept secure on the backend server, never exposed to the frontend.
+
+Create or edit `backend/.env`:
 
 ```env
-VITE_AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-VITE_AZURE_OPENAI_API_KEY=your-api-key-here
-VITE_AZURE_OPENAI_DEPLOYMENT=gpt-4
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_API_KEY=your-api-key-here
+AZURE_OPENAI_DEPLOYMENT=gpt-4
 ```
 
-**Security Note**: Never commit `.env` files to version control.
+**Security Note**: 
+- Never commit `.env` files to version control
+- Never store API keys in frontend environment variables
+- The backend API endpoint handles all Azure OpenAI requests securely
 
 ### Step 3: Restart the Application
 
 ```bash
 npm run dev
 ```
+
+Both frontend and backend will restart, and the backend will securely handle AI generation requests.
 
 ## Using AI Generation
 

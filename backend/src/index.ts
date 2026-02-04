@@ -3,8 +3,12 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import { initializeAzureAI, generateXMLSample, isAzureAIConfigured } from './services/ai-service.js'
 
 dotenv.config()
+
+// Initialize AI service
+initializeAzureAI()
 
 const app = express()
 const httpServer = createServer(app)
@@ -24,6 +28,28 @@ app.use(express.json())
 // API Routes
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Nexus Architect API is running' })
+})
+
+// AI Generation endpoint
+app.post('/api/generate-xml', async (req, res) => {
+  const { xsdString, context, temperature } = req.body
+
+  if (!xsdString || !context) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required fields: xsdString and context',
+    })
+  }
+
+  if (!isAzureAIConfigured()) {
+    return res.status(503).json({
+      success: false,
+      error: 'Azure OpenAI is not configured on the server',
+    })
+  }
+
+  const result = await generateXMLSample(xsdString, context, temperature)
+  res.json(result)
 })
 
 // Store active users per schema
@@ -95,6 +121,10 @@ io.on('connection', (socket) => {
           userId: socket.id,
           schemaId,
         })
+        // Remove empty schema rooms to prevent memory leaks
+        if (users.size === 0) {
+          schemaRooms.delete(schemaId)
+        }
       }
     })
   })
