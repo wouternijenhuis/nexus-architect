@@ -1,0 +1,39 @@
+{
+  "name": "nexus-architect",
+  "version": "1.0.0",
+  "description": "XSD Schema Creation Application with React, Express, and real-time collaboration",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "cd frontend && npm run test",
+    "test:e2e": "cd tests/e2e && npm run test",
+    "test:load": "cd tests/load && k6 run load-test.js",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:backend": "cd backend && npm run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "docs:serve": "cd docs && mkdocs serve",
+    "docs:build": "cd docs && mkdocs build",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install && cd ../tests/e2e && npm install"
+  },
+  "keywords": [
+    "xsd",
+    "schema",
+    "xml",
+    "react",
+    "express",
+    "websocket"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "prettier": "^3.4.2"
+  }
+}

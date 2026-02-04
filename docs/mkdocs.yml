@@ -1,0 +1,61 @@
+site_name: Nexus Architect
+site_description: XSD Schema Creation Application Documentation
+site_author: Nexus Architect Team
+site_url: https://nexus-architect.dev
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: blue
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+  - User Guide:
+      - Projects: guide/projects.md
+      - Schemas: guide/schemas.md
+      - XSD Features: guide/xsd-features.md
+      - Validation: guide/validation.md
+      - AI Generation: guide/ai-generation.md
+  - API Reference:
+      - REST API: api/rest.md
+      - WebSocket API: api/websocket.md
+  - Development:
+      - Architecture: dev/architecture.md
+      - Contributing: dev/contributing.md
+      - Testing: dev/testing.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
