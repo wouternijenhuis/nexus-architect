@@ -1,4 +1,5 @@
 import { OpenAIClient, AzureKeyCredential } from '@azure/openai'
+import { aiCache, generateAICacheKey } from './cache-service.js'
 
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT || ''
 const apiKey = process.env.AZURE_OPENAI_API_KEY || ''
@@ -28,6 +29,13 @@ export async function generateXMLSample(
     }
   }
 
+  // Check cache before calling Azure OpenAI — identical prompts return cached results
+  const cacheKey = generateAICacheKey(xsdString, context, temperature)
+  const cached = aiCache.get(cacheKey)
+  if (cached) {
+    return { ...cached, error: undefined }
+  }
+
   try {
     const messages = [
       {
@@ -55,10 +63,11 @@ export async function generateXMLSample(
       cleanedXML = cleanedXML.replace(/```\n?/g, '').replace(/```\n?$/g, '')
     }
 
-    return {
-      xml: cleanedXML,
-      success: true,
-    }
+    // Store successful result in cache for future identical requests
+    const response = { xml: cleanedXML, success: true as const }
+    aiCache.set(cacheKey, response)
+
+    return response
   } catch (error: any) {
     console.error('AI generation error:', error)
     return {

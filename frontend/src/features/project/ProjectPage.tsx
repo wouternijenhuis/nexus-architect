@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Plus, FileCode, Trash2, Download, ArrowLeft } from 'lucide-react'
 import { useStore } from '../../lib/store'
 import { generateXSDString } from '../../lib/xsd-utils'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -10,6 +11,8 @@ export default function ProjectPage() {
   const { projects, createSchema, deleteSchema } = useStore()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newSchemaName, setNewSchemaName] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [schemaToDelete, setSchemaToDelete] = useState<{ id: string; name: string } | null>(null)
 
   const project = projects.find((p) => p.id === projectId)
 
@@ -104,7 +107,10 @@ export default function ProjectPage() {
                     <Download className="w-5 h-5" />
                   </button>
                   <button
-                    onClick={() => deleteSchema(projectId!, schema.id)}
+                    onClick={() => {
+                      setSchemaToDelete({ id: schema.id, name: schema.name })
+                      setDeleteDialogOpen(true)
+                    }}
                     className="text-gray-600 hover:text-red-600"
                     title="Delete"
                   >
@@ -169,6 +175,25 @@ export default function ProjectPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Delete Schema"
+        message={schemaToDelete ? `Are you sure you want to delete the schema "${schemaToDelete.name}"? This action cannot be undone.` : ''}
+        confirmLabel="Delete Schema"
+        onConfirm={() => {
+          if (schemaToDelete && projectId) {
+            deleteSchema(projectId, schemaToDelete.id)
+          }
+          setDeleteDialogOpen(false)
+          setSchemaToDelete(null)
+        }}
+        onCancel={() => {
+          setDeleteDialogOpen(false)
+          setSchemaToDelete(null)
+        }}
+        variant="danger"
+      />
     </div>
   )
 }

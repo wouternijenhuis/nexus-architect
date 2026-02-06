@@ -2,6 +2,7 @@
 
 > A comprehensive XSD Schema creation and management application with real-time collaboration and AI-powered XML generation.
 
+[![CI](https://github.com/wouternijenhuis/nexus-architect/actions/workflows/ci.yml/badge.svg)](https://github.com/wouternijenhuis/nexus-architect/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## ✨ Features

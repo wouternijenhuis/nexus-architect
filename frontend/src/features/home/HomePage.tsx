@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, FolderOpen, Trash2, Download } from 'lucide-react'
 import { useStore } from '../../lib/store'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { validateProjectName } from '../../lib/validation'
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -9,14 +11,31 @@ export default function HomePage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectDescription, setNewProjectDescription] = useState('')
+  const [projectNameError, setProjectNameError] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string; schemaCount: number } | null>(null)
+
+  const handleProjectNameChange = (value: string) => {
+    setNewProjectName(value)
+    // Clear error when user starts typing
+    if (projectNameError) {
+      setProjectNameError(null)
+    }
+  }
 
   const handleCreateProject = () => {
-    if (newProjectName.trim()) {
-      createProject(newProjectName, newProjectDescription)
-      setNewProjectName('')
-      setNewProjectDescription('')
-      setShowCreateModal(false)
+    const validation = validateProjectName(newProjectName.trim())
+    
+    if (!validation.success) {
+      setProjectNameError(validation.error || 'Invalid project name')
+      return
     }
+    
+    createProject(newProjectName.trim(), newProjectDescription.trim())
+    setNewProjectName('')
+    setNewProjectDescription('')
+    setProjectNameError(null)
+    setShowCreateModal(false)
   }
 
   const handleExport = (projectId: string) => {
@@ -101,7 +120,14 @@ export default function HomePage() {
                     <Download className="w-5 h-5" />
                   </button>
                   <button
-                    onClick={() => deleteProject(project.id)}
+                    onClick={() => {
+                      setProjectToDelete({
+                        id: project.id,
+                        name: project.name,
+                        schemaCount: project.schemas.length
+                      })
+                      setDeleteDialogOpen(true)
+                    }}
                     className="text-gray-600 hover:text-red-600"
                     title="Delete"
                   >
@@ -142,10 +168,19 @@ export default function HomePage() {
                 <input
                   type="text"
                   value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  onChange={(e) => handleProjectNameChange(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white ${
+                    projectNameError 
+                      ? 'border-red-500 dark:border-red-500' 
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
                   placeholder="My XSD Project"
                 />
+                {projectNameError && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {projectNameError}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -165,6 +200,7 @@ export default function HomePage() {
                     setShowCreateModal(false)
                     setNewProjectName('')
                     setNewProjectDescription('')
+                    setProjectNameError(null)
                   }}
                   className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                 >
@@ -182,6 +218,25 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Delete Project"
+        message={projectToDelete ? `Are you sure you want to delete "${projectToDelete.name}"? This will permanently delete the project and all ${projectToDelete.schemaCount} schema${projectToDelete.schemaCount === 1 ? '' : 's'} it contains.` : ''}
+        confirmLabel="Delete Project"
+        onConfirm={() => {
+          if (projectToDelete) {
+            deleteProject(projectToDelete.id)
+          }
+          setDeleteDialogOpen(false)
+          setProjectToDelete(null)
+        }}
+        onCancel={() => {
+          setDeleteDialogOpen(false)
+          setProjectToDelete(null)
+        }}
+        variant="danger"
+      />
     </div>
   )
 }

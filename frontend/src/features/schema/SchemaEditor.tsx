@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -8,18 +8,46 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react'
-import { useStore } from '../../lib/store'
+import { useStore, useCollaborationStore } from '../../lib/store'
 import { generateXSDString, validateXMLAgainstXSD } from '../../lib/xsd-utils'
-import { generateXMLSample, isAzureAIConfigured } from '../../lib/azure-ai'
-import { XSDElement, XSDComplexType, XSDSimpleType } from '../../types/xsd'
+import { generateXMLSample } from '../../lib/azure-ai'
+import { XSDElement, XSDComplexType, XSDSimpleType, XSDSchema } from '../../types/xsd'
+import {
+  joinSchemaRoom,
+  leaveSchemaRoom,
+  broadcastSchemaUpdate,
+  onConnectionChange,
+  onUserJoined,
+  onUserLeft,
+  onSchemaUpdated,
+  getSocketId,
+  isConnected,
+} from '../../lib/websocket'
+import ActiveUsers from '../../components/ActiveUsers'
+import ConnectionStatus from '../../components/ConnectionStatus'
 
 export default function SchemaEditor() {
   const { projectId, schemaId } = useParams<{ projectId: string; schemaId: string }>()
   const navigate = useNavigate()
   const { projects, updateSchema } = useStore()
+  
+  // Collaboration state
+  const {
+    activeUsers,
+    isConnected: wsConnected,
+    addUser,
+    removeUser,
+    setConnected,
+    setCurrentRoom,
+    clearCollaboration,
+  } = useCollaborationStore()
 
   const project = projects.find((p) => p.id === projectId)
   const schema = project?.schemas.find((s) => s.id === schemaId)
+  
+  // Track if update came from remote to avoid echo
+  const isRemoteUpdateRef = useRef(false)
+  const lastLocalUpdateRef = useRef<string | null>(null)
 
   const [activeTab, setActiveTab] = useState<'elements' | 'complex' | 'simple' | 'preview' | 'validate'>('elements')
   const [xsdPreview, setXsdPreview] = useState('')
@@ -28,6 +56,79 @@ export default function SchemaEditor() {
   const [aiContext, setAiContext] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiResult, setAiResult] = useState('')
+
+  // Join/leave schema room for collaboration
+  useEffect(() => {
+    if (!schemaId) return
+
+    // Join the schema room
+    const userId = getSocketId() || crypto.randomUUID()
+    joinSchemaRoom(schemaId, userId)
+    setCurrentRoom(schemaId)
+    
+    // Add self to active users
+    addUser({
+      id: userId,
+      name: `User ${userId.slice(0, 4)}`,
+    })
+
+    // Cleanup on unmount or when schemaId changes
+    return () => {
+      leaveSchemaRoom(schemaId)
+      clearCollaboration()
+    }
+  }, [schemaId, setCurrentRoom, addUser, clearCollaboration])
+
+  // Subscribe to collaboration events
+  useEffect(() => {
+    const unsubConnection = onConnectionChange((connected) => {
+      setConnected(connected)
+    })
+
+    const unsubUserJoined = onUserJoined((data) => {
+      if (data.schemaId === schemaId) {
+        addUser({
+          id: data.userId,
+          name: `User ${data.userId.slice(0, 4)}`,
+        })
+      }
+    })
+
+    const unsubUserLeft = onUserLeft((data) => {
+      if (data.schemaId === schemaId) {
+        removeUser(data.userId)
+      }
+    })
+
+    const unsubSchemaUpdated = onSchemaUpdated((data) => {
+      if (data.schemaId === schemaId && projectId) {
+        // Skip if this is our own update echoed back
+        const updateId = JSON.stringify(data.schema)
+        if (updateId === lastLocalUpdateRef.current) {
+          return
+        }
+        
+        // Mark as remote update to avoid broadcasting back
+        isRemoteUpdateRef.current = true
+        updateSchema(projectId, data.schema)
+        
+        // Reset after a short delay
+        setTimeout(() => {
+          isRemoteUpdateRef.current = false
+        }, 100)
+      }
+    })
+
+    // Set initial connection state
+    setConnected(isConnected())
+
+    return () => {
+      unsubConnection()
+      unsubUserJoined()
+      unsubUserLeft()
+      unsubSchemaUpdated()
+    }
+  }, [schemaId, projectId, addUser, removeUser, setConnected, updateSchema])
 
   useEffect(() => {
     if (schema) {
@@ -49,6 +150,20 @@ export default function SchemaEditor() {
     )
   }
 
+  // Helper to update schema locally and broadcast to other users
+  const updateSchemaWithBroadcast = useCallback((updatedSchema: XSDSchema) => {
+    if (!projectId || !schemaId) return
+    
+    // Update local state
+    updateSchema(projectId, updatedSchema)
+    
+    // Only broadcast if this is a local change, not a remote update
+    if (!isRemoteUpdateRef.current) {
+      lastLocalUpdateRef.current = JSON.stringify(updatedSchema)
+      broadcastSchemaUpdate(schemaId, updatedSchema)
+    }
+  }, [projectId, schemaId, updateSchema])
+
   const handleAddElement = () => {
     const newElement: XSDElement = {
       id: crypto.randomUUID(),
@@ -61,7 +176,7 @@ export default function SchemaEditor() {
       ...schema,
       elements: [...schema.elements, newElement],
     }
-    updateSchema(projectId!, updatedSchema)
+    updateSchemaWithBroadcast(updatedSchema)
   }
 
   const handleAddComplexType = () => {
@@ -75,7 +190,7 @@ export default function SchemaEditor() {
       ...schema,
       complexTypes: [...schema.complexTypes, newComplexType],
     }
-    updateSchema(projectId!, updatedSchema)
+    updateSchemaWithBroadcast(updatedSchema)
   }
 
   const handleAddSimpleType = () => {
@@ -89,7 +204,7 @@ export default function SchemaEditor() {
       ...schema,
       simpleTypes: [...schema.simpleTypes, newSimpleType],
     }
-    updateSchema(projectId!, updatedSchema)
+    updateSchemaWithBroadcast(updatedSchema)
   }
 
   const handleExportXSD = () => {
@@ -139,6 +254,13 @@ export default function SchemaEditor() {
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{schema.name}</h2>
           <p className="text-gray-600 dark:text-gray-400">{project.name}</p>
         </div>
+        
+        {/* Collaboration Status */}
+        <div className="flex items-center gap-4">
+          <ConnectionStatus isConnected={wsConnected} showLabel={false} />
+          <ActiveUsers users={activeUsers} />
+        </div>
+        
         <button
           onClick={handleExportXSD}
           className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
